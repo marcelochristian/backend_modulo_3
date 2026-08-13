@@ -1,0 +1,2 @@
+//Comando para executar as seeds
+// npm run seed:all
