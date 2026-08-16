@@ -9,3 +9,6 @@ export const FORBIDDEN_STATUS = 403;
 export const NOT_FOUND_STATUS = 404;
 export const CONFLICT_STATUS = 409;
 export const INTERNAL_SERVER_STATUS = 500;
+
+export const PORTES = ["P", "M", "G"];
+export const SEXO = ["M", "F"];
