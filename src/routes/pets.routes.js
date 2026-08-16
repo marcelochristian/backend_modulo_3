@@ -148,7 +148,13 @@ petsRoutes.get(
   "/pets",
   autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
   asyncHandler(async (request, response) => {
-    const buscarTodos = await petRepository.find();
+    const buscarTodos = await petRepository.find({
+      relations: {
+        tipo: true,
+        raca: true,
+        cor: true,
+      },
+    });
     response.send(buscarTodos);
   }),
 );
