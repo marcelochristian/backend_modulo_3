@@ -1,0 +1,147 @@
+import { Router } from "express";
+import {
+  BAD_REQUEST_STATUS,
+  CREATED_STATUS,
+  PORTES,
+  SEXO,
+} from "../constants/server.js";
+import { AppDataSource } from "../config/database_postgres.js";
+import { TipoEntity } from "../entidades/Tipo.js";
+import { CorEntity } from "../entidades/Cor.js";
+import { RacaEntity } from "../entidades/Raca.js";
+import { PetEntity } from "../entidades/Pet.js";
+import { asyncHandler } from "../middlewares/global/asyncHandler.js";
+import { autorizarHandler } from "../middlewares/auth/autorizarHandler.js";
+import { ROLES } from "../constants/roles.js";
+
+const petsRoutes = new Router();
+const petRepository = AppDataSource.getRepository(PetEntity);
+const tipoRepository = AppDataSource.getRepository(TipoEntity);
+const racaRepository = AppDataSource.getRepository(RacaEntity);
+const corRepository = AppDataSource.getRepository(CorEntity);
+
+petsRoutes.post(
+  "/pets",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+
+    // nome - obrigatório e string
+    if (!dados.nome || typeof dados.nome !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Nome é obrigatório e deve ser uma string");
+      return;
+    }
+
+    // tipo_id - obrigatório e deve existir no banco
+    if (!dados.tipo_id) {
+      response.status(BAD_REQUEST_STATUS).send("Tipo é obrigatório");
+      return;
+    }
+
+    const tipoEncontrado = await tipoRepository.existsBy({
+      id: dados.tipo_id,
+    });
+
+    if (!tipoEncontrado) {
+      response.status(BAD_REQUEST_STATUS).send("Tipo inválido");
+      return;
+    }
+
+    // raca_id - obrigatório e deve existir no banco
+    if (!dados.raca_id) {
+      response.status(BAD_REQUEST_STATUS).send("Raça é obrigatória");
+      return;
+    }
+
+    const racaEncontrada = await racaRepository.existsBy({
+      id: dados.raca_id,
+    });
+
+    if (!racaEncontrada) {
+      response.status(BAD_REQUEST_STATUS).send("Raça inválida");
+      return;
+    }
+
+    // cor_id - obrigatório e deve existir no banco
+    if (!dados.cor_id) {
+      response.status(BAD_REQUEST_STATUS).send("Cor é obrigatória");
+      return;
+    }
+
+    const corEncontrada = await corRepository.existsBy({
+      id: dados.cor_id,
+    });
+
+    if (!corEncontrada) {
+      response.status(BAD_REQUEST_STATUS).send("Cor inválida");
+      return;
+    }
+
+    // porte - obrigatório e deve ser P, M ou G
+    if (!dados.porte || !PORTES.includes(dados.porte)) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Porte é obrigatório e deve ser P, M ou G");
+      return;
+    }
+
+    // sexo - opcional, mas se informado deve ser M ou F
+    if (dados.sexo !== undefined && !SEXO.includes(dados.sexo)) {
+      response.status(BAD_REQUEST_STATUS).send("Sexo deve ser M ou F");
+      return;
+    }
+
+    // foto_url - opcional e string
+    if (dados.foto_url !== undefined && typeof dados.foto_url !== "string") {
+      response.status(BAD_REQUEST_STATUS).send("Foto URL deve ser uma string");
+      return;
+    }
+
+    // historia - opcional e string
+    if (dados.historia !== undefined && typeof dados.historia !== "string") {
+      response.status(BAD_REQUEST_STATUS).send("História deve ser uma string");
+      return;
+    }
+
+    // comportamento - opcional e string
+    if (
+      dados.comportamento !== undefined &&
+      typeof dados.comportamento !== "string"
+    ) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Comportamento deve ser uma string");
+      return;
+    }
+
+    // observacoes_extras - opcional e string
+    if (
+      dados.observacoes_extras !== undefined &&
+      typeof dados.observacoes_extras !== "string"
+    ) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Observações extras devem ser uma string");
+      return;
+    }
+
+    // idade_meses - opcional e número inteiro
+    if (
+      dados.idade_meses !== undefined &&
+      !Number.isInteger(dados.idade_meses)
+    ) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Idade em meses deve ser um número inteiro");
+      return;
+    }
+
+    const petSalvo = await petRepository.save(dados);
+
+    response.status(CREATED_STATUS).send(petSalvo);
+  }),
+);
+
+export default petsRoutes;
