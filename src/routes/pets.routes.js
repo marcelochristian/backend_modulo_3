@@ -387,4 +387,60 @@ petsRoutes.post(
   }),
 );
 
+petsRoutes.put(
+  "/atualizar_status_adocao",
+  autorizarHandler(ROLES.ADMIN),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+
+    const STATUS_ADOCAO = [
+      "ANALISE",
+      "CONCLUIDO",
+      "FINALIZADO",
+      "CANCELADO",
+      "REPROVADO",
+    ];
+
+    if (!dados.adocao_id) {
+      response.status(BAD_REQUEST_STATUS).send("O id da adoção é obrigatório");
+      return;
+    }
+
+    const adocaoExiste = await adocaoRepository.existsBy({
+      id: dados.adocao_id,
+    });
+
+    if (!adocaoExiste) {
+      response.status(BAD_REQUEST_STATUS).send("Adoção não encontrada");
+      return;
+    }
+
+    if (!dados.status || !STATUS_ADOCAO.includes(dados.status)) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send(
+          "Status deve ser ANALISE, CONCLUIDO, FINALIZADO, CANCELADO ou REPROVADO",
+        );
+      return;
+    }
+
+    if (
+      dados.observacao !== undefined &&
+      typeof dados.observacao !== "string"
+    ) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Observação deve ser uma string");
+      return;
+    }
+
+    const historico = await adocoesHistoricoRepository.save({
+      adocao_id: dados.adocao_id,
+      status: dados.status,
+      observacao: dados.observacao,
+    });
+
+    response.status(CREATED_STATUS).send(historico);
+  }),
+);
 export default petsRoutes;
