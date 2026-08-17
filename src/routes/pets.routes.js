@@ -314,4 +314,15 @@ petsRoutes.get(
     response.send(consulta);
   }),
 );
+
+petsRoutes.get(
+  "/lar-adotivo/:id",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  verifyIdExistsHandler(LarAdotivoEntity, "Lar adotivo"),
+  asyncHandler(async (request, response) => {
+    const buscarId = request.registro;
+    response.status(OK_STATUS).send(buscarId);
+  }),
+);
+
 export default petsRoutes;
