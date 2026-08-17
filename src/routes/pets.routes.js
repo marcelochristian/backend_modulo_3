@@ -16,16 +16,22 @@ import { asyncHandler } from "../middlewares/global/asyncHandler.js";
 import { autorizarHandler } from "../middlewares/auth/autorizarHandler.js";
 import { ROLES } from "../constants/roles.js";
 import { verifyIdExistsHandler } from "../middlewares/global/verifyIdExistsHandler.js";
-import { AdocaoEntity } from "../entidades/Adocao.js";
-import { LarAdotivoEntity } from "../entidades/LarAdotivo.js";
 
+import { LarAdotivoEntity } from "../entidades/LarAdotivo.js";
+import { AdocaoEntity } from "../entidades/Adocao.js";
+import { AdocaoHistoricoEntity } from "../entidades/AdocaoHistorico.js";
+import { In } from "typeorm";
 const petsRoutes = new Router();
 const petRepository = AppDataSource.getRepository(PetEntity);
 const tipoRepository = AppDataSource.getRepository(TipoEntity);
 const racaRepository = AppDataSource.getRepository(RacaEntity);
 const corRepository = AppDataSource.getRepository(CorEntity);
-const adocaoRepository = AppDataSource.getRepository(AdocaoEntity);
 const larAdotivoRepository = AppDataSource.getRepository(LarAdotivoEntity);
+const adocaoRepository = AppDataSource.getRepository(AdocaoEntity);
+const adocoesHistoricoRepository = AppDataSource.getRepository(
+  AdocaoHistoricoEntity,
+);
+
 petsRoutes.post(
   "/pets",
   autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
@@ -335,6 +341,49 @@ petsRoutes.put(
 
     await larAdotivoRepository.update(idRecebido, dados);
     response.send(dados);
+  }),
+);
+
+petsRoutes.post(
+  "/pets/adotar",
+  autorizarHandler(ROLES.ADMIN),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+
+    const adocaoExistente = await adocaoRepository.findOne({
+      where: {
+        pet_id: dados.pet_id,
+      },
+    });
+
+    if (adocaoExistente) {
+      const historicoExistente = await adocoesHistoricoRepository.findOne({
+        where: {
+          adocao_id: adocaoExistente.id,
+          status: In(["ANALISE", "CONCLUIDO", "FINALIZADO"]),
+        },
+      });
+
+      if (historicoExistente) {
+        response
+          .status(BAD_REQUEST_STATUS)
+          .send("Esse pet já possui uma adoção ativa ou finalizada");
+        return;
+      }
+    }
+
+    const adocao = await adocaoRepository.save({
+      pet_id: dados.pet_id,
+      lar_adotivo_id: dados.lar_adotivo_id,
+    });
+
+    await adocoesHistoricoRepository.save({
+      status: "ANALISE",
+      observacao: dados.observacao,
+      adocao_id: adocao.id,
+    });
+
+    response.status(CREATED_STATUS).send(adocao);
   }),
 );
 
