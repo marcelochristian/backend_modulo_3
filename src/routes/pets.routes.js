@@ -325,4 +325,17 @@ petsRoutes.get(
   }),
 );
 
+petsRoutes.put(
+  "/lar-adotivo/:id",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  verifyIdExistsHandler(LarAdotivoEntity, "Lar adotivo"),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+    const idRecebido = request.params.id;
+
+    await larAdotivoRepository.update(idRecebido, dados);
+    response.send(dados);
+  }),
+);
+
 export default petsRoutes;
