@@ -296,4 +296,22 @@ petsRoutes.post(
     response.status(CREATED_STATUS).send(larAdotivoSalvo);
   }),
 );
+
+petsRoutes.get(
+  "/lares-adotivos",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  asyncHandler(async (request, response) => {
+    const estado = request.query.estado;
+    const tipo = request.query.tipo;
+
+    const consulta = await larAdotivoRepository.find({
+      where: { estado: estado, tipo: tipo },
+      order: {
+        criado_em: "ASC",
+      },
+    });
+
+    response.send(consulta);
+  }),
+);
 export default petsRoutes;
