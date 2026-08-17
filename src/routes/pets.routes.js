@@ -13,6 +13,7 @@ import { PetEntity } from "../entidades/Pet.js";
 import { asyncHandler } from "../middlewares/global/asyncHandler.js";
 import { autorizarHandler } from "../middlewares/auth/autorizarHandler.js";
 import { ROLES } from "../constants/roles.js";
+import { verifyIdExistsHandler } from "../middlewares/global/verifyIdExistsHandler.js";
 
 const petsRoutes = new Router();
 const petRepository = AppDataSource.getRepository(PetEntity);
@@ -155,7 +156,17 @@ petsRoutes.get(
         cor: true,
       },
     });
-    response.send(buscarTodos);
+    response.status(REQUESTED_STATUS).send(buscarTodos);
+  }),
+);
+
+petsRoutes.get(
+  "/pets/:id",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  verifyIdExistsHandler(PetEntity, "Pet"),
+  asyncHandler(async (request, response) => {
+    const buscarId = request.registro;
+    response.status(REQUESTED_STATUS).send(buscarId);
   }),
 );
 
