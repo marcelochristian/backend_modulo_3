@@ -17,6 +17,7 @@ import { autorizarHandler } from "../middlewares/auth/autorizarHandler.js";
 import { ROLES } from "../constants/roles.js";
 import { verifyIdExistsHandler } from "../middlewares/global/verifyIdExistsHandler.js";
 import { AdocaoEntity } from "../entidades/Adocao.js";
+import { LarAdotivoEntity } from "../entidades/LarAdotivo.js";
 
 const petsRoutes = new Router();
 const petRepository = AppDataSource.getRepository(PetEntity);
@@ -24,7 +25,7 @@ const tipoRepository = AppDataSource.getRepository(TipoEntity);
 const racaRepository = AppDataSource.getRepository(RacaEntity);
 const corRepository = AppDataSource.getRepository(CorEntity);
 const adocaoRepository = AppDataSource.getRepository(AdocaoEntity);
-
+const larAdotivoRepository = AppDataSource.getRepository(LarAdotivoEntity);
 petsRoutes.post(
   "/pets",
   autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
@@ -212,4 +213,87 @@ petsRoutes.delete(
   }),
 );
 
+petsRoutes.post(
+  "/lar-adotivo",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+
+    // nome
+    if (!dados.nome || typeof dados.nome !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Nome é obrigatório e deve ser uma string");
+      return;
+    }
+
+    // cep
+    if (!dados.cep || !/^\d{5}-\d{3}$/.test(dados.cep)) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("CEP é obrigatório e deve estar no formato xxxxx-xxx");
+      return;
+    }
+
+    // estado
+    if (!dados.estado || typeof dados.estado !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Estado é obrigatório e deve ser uma string");
+      return;
+    }
+
+    // cidade
+    if (!dados.cidade || typeof dados.cidade !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Cidade é obrigatória e deve ser uma string");
+      return;
+    }
+
+    // bairro
+    if (!dados.bairro || typeof dados.bairro !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Bairro é obrigatório e deve ser uma string");
+      return;
+    }
+
+    // rua
+    if (!dados.rua || typeof dados.rua !== "string") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Rua é obrigatória e deve ser uma string");
+      return;
+    }
+
+    // possui_telas_protecao
+    if (typeof dados.possui_telas_protecao !== "boolean") {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Possui telas de proteção é obrigatório e deve ser booleano");
+      return;
+    }
+
+    // tipo
+    if (!dados.tipo || !["TEMPORARIO", "DEFINITIVO"].includes(dados.tipo)) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Tipo é obrigatório e deve ser TEMPORARIO ou DEFINITIVO");
+      return;
+    }
+
+    // telefone
+    if (!dados.telefone || !/^\(\d{2}\) \d{5}-\d{4}$/.test(dados.telefone)) {
+      response
+        .status(BAD_REQUEST_STATUS)
+        .send("Telefone é obrigatório e deve estar no formato (85) 99999-9999");
+      return;
+    }
+
+    const larAdotivoSalvo = await larAdotivoRepository.save(dados);
+
+    response.status(CREATED_STATUS).send(larAdotivoSalvo);
+  }),
+);
 export default petsRoutes;
