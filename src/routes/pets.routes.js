@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   BAD_REQUEST_STATUS,
   CREATED_STATUS,
+  NO_CONTENT_STATUS,
+  OK_STATUS,
   PORTES,
   SEXO,
 } from "../constants/server.js";
@@ -14,12 +16,14 @@ import { asyncHandler } from "../middlewares/global/asyncHandler.js";
 import { autorizarHandler } from "../middlewares/auth/autorizarHandler.js";
 import { ROLES } from "../constants/roles.js";
 import { verifyIdExistsHandler } from "../middlewares/global/verifyIdExistsHandler.js";
+import { AdocaoEntity } from "../entidades/Adocao.js";
 
 const petsRoutes = new Router();
 const petRepository = AppDataSource.getRepository(PetEntity);
 const tipoRepository = AppDataSource.getRepository(TipoEntity);
 const racaRepository = AppDataSource.getRepository(RacaEntity);
 const corRepository = AppDataSource.getRepository(CorEntity);
+const adocaoRepository = AppDataSource.getRepository(AdocaoEntity);
 
 petsRoutes.post(
   "/pets",
@@ -156,7 +160,7 @@ petsRoutes.get(
         cor: true,
       },
     });
-    response.status(REQUESTED_STATUS).send(buscarTodos);
+    response.status(OK_STATUS).send(buscarTodos);
   }),
 );
 
@@ -166,7 +170,45 @@ petsRoutes.get(
   verifyIdExistsHandler(PetEntity, "Pet"),
   asyncHandler(async (request, response) => {
     const buscarId = request.registro;
-    response.status(REQUESTED_STATUS).send(buscarId);
+    response.status(OK_STATUS).send(buscarId);
+  }),
+);
+
+petsRoutes.put(
+  "/pets/:id",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  verifyIdExistsHandler(PetEntity, "Pet"),
+  asyncHandler(async (request, response) => {
+    const dados = request.body;
+    const idRecebido = request.params.id;
+
+    await petRepository.update(idRecebido, dados);
+    response.send(dados);
+  }),
+);
+
+petsRoutes.delete(
+  "/pets/:id",
+  autorizarHandler(ROLES.ADMIN, ROLES.COLABORADOR),
+  verifyIdExistsHandler(PetEntity, "Pet"),
+  asyncHandler(async (request, response) => {
+    const dados = request.registro;
+    const idRecebido = request.params.id;
+    console.log(idRecebido);
+    const possuiAdocao = await adocaoRepository.existsBy({
+      pet_id: idRecebido,
+    });
+
+    if (possuiAdocao) {
+      response.status(400).send({
+        error: "Pet não pode ser excluído pois possui adoção cadastrada",
+      });
+      return;
+    }
+
+    await petRepository.delete(idRecebido);
+
+    response.status(NO_CONTENT_STATUS).send();
   }),
 );
 
